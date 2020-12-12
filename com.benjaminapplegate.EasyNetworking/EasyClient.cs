@@ -19,6 +19,11 @@ namespace com.benjaminapplegate.EasyNetworking
         private bool safeToClose = true;
 
         public EasyPacket Packet;
+
+        public delegate void ConnectionCallback();
+
+        public ConnectionCallback successfulConnection = null;
+        public ConnectionCallback failedConnection = null;
         
         public EasyClient(string IP, int PORT, EasyPacket packetObject)
         {
@@ -44,49 +49,50 @@ namespace com.benjaminapplegate.EasyNetworking
                 Connection.Connect(ip, port);
                 receiveThread = new Thread(new ThreadStart(ReceiveData));
                 receiveThread.Start();
+
+                successfulConnection?.Invoke();
+
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error connecting or starting socket: {e}");
+                failedConnection?.Invoke();
             }
             
         }
 
         private void ReceiveData()
         {
-            try
-            {
-                NetworkStream stream = Connection.GetStream();
+            NetworkStream stream = Connection.GetStream();
                 while (true)
                 {
                     if (serverClosed) return;
                     if (stream.DataAvailable)
                     {
-                        int bytesReceived = Connection.Available;
-                        byte[] bytes = new byte[Connection.Available];
-                        int bytesRead = stream.Read(bytes, 0, bytes.Length);
-
                         try
                         {
-                            Packet.handleDataFromServer(bytes);
+                            byte[] bytes = new byte[Connection.Available];
+                            int bytesRead = stream.Read(bytes, 0, bytes.Length);
+                            try
+                            {
+                                Packet.handleDataFromServer(bytes);
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine($"ERROR handling data: {e}");
+                            }
                         }
                         catch (Exception e)
                         {
-                            Console.WriteLine($"ERROR: {e}");
+                            if (!serverClosed)
+                            {
+                                Console.WriteLine($"Error receiving data: {e}");
+                            }
                         }
                         
-                        Console.WriteLine($"Debug: Bytes received: {bytesReceived}");
+                        
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                if (!serverClosed)
-                {
-                    Console.WriteLine($"Error receiving data: {e}");
-                }
-            }
-            
+
         }
         
         private void SendData(IAsyncResult ar)

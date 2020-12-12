@@ -12,7 +12,6 @@ namespace com.benjaminapplegate.EasyNetworking
         private TcpListener listener;
         private int maxClients;
         private int port;
-        private int dataBufferSize = 1024;
 
         private bool shouldClose = false;
         
@@ -82,7 +81,7 @@ namespace com.benjaminapplegate.EasyNetworking
             }
             catch (Exception e)
             {
-                
+                Console.WriteLine($"Error accepting connection: {e}");
             }
 
         }
