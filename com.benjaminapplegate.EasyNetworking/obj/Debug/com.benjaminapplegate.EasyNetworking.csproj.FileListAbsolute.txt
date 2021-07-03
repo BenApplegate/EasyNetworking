@@ -1,6 +1,6 @@
 D:\dev\C#\EasyNetworking\com.benjaminapplegate.EasyNetworking\bin\Debug\com.benjaminapplegate.EasyNetworking.dll
 D:\dev\C#\EasyNetworking\com.benjaminapplegate.EasyNetworking\bin\Debug\com.benjaminapplegate.EasyNetworking.pdb
-D:\dev\C#\EasyNetworking\com.benjaminapplegate.EasyNetworking\obj\Debug\com.benjaminapplegate.EasyNetworking.csprojAssemblyReference.cache
 D:\dev\C#\EasyNetworking\com.benjaminapplegate.EasyNetworking\obj\Debug\com.benjaminapplegate.EasyNetworking.csproj.CoreCompileInputs.cache
 D:\dev\C#\EasyNetworking\com.benjaminapplegate.EasyNetworking\obj\Debug\com.benjaminapplegate.EasyNetworking.dll
 D:\dev\C#\EasyNetworking\com.benjaminapplegate.EasyNetworking\obj\Debug\com.benjaminapplegate.EasyNetworking.pdb
+D:\dev\C#\EasyNetworking\com.benjaminapplegate.EasyNetworking\obj\Debug\com.benjaminapplegate.EasyNetworking.csproj.AssemblyReference.cache
