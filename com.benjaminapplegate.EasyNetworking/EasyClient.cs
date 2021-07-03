@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -7,37 +8,37 @@ namespace com.benjaminapplegate.EasyNetworking
     public class EasyClient
     {
         private TcpClient Connection = null;
-        private bool serverClosed = false;
-
-        private int dataBufferSize = 1024;
-
-        private string ip;
-        private int port;
-
-        private Thread receiveThread;
-
-        private bool safeToClose = true;
-
-        public EasyPacket Packet;
-
-        public delegate void ConnectionCallback();
-
-        public ConnectionCallback successfulConnection = null;
-        public ConnectionCallback failedConnection = null;
         
-        public EasyClient(string IP, int PORT, EasyPacket packetObject)
+
+        private string _ip;
+        private int _port;
+
+        private bool _safeToClose = true;
+
+        private byte[] _readBuffer;
+
+        public delegate void ClientCallback();
+
+        public ClientCallback SuccessfulClient = null;
+        public ClientCallback FailedClient = null;
+        
+        public delegate void PacketHandler(Packet packet);
+
+        private Dictionary<int, PacketHandler> _packetHandlers = new Dictionary<int, PacketHandler>();
+        
+        public EasyClient(string ip, int port)
         {
-            Packet = packetObject;
-            ip = IP;
-            port = PORT;
-            Connection = new TcpClient()
-            {
-                ReceiveBufferSize = dataBufferSize,
-                SendBufferSize = dataBufferSize
-            };
+            _ip = ip;
+            _port = port;
+            Connection = new TcpClient();
         }
 
-        public bool isConnected()
+        public void AddPacketHandler(int packetType, PacketHandler handler)
+        {
+            _packetHandlers.Add(packetType, handler);
+        }
+        
+        public bool IsConnected()
         {
             return Connection.Connected;
         }
@@ -46,73 +47,62 @@ namespace com.benjaminapplegate.EasyNetworking
         {
             try
             {
-                Connection.Connect(ip, port);
-                receiveThread = new Thread(new ThreadStart(ReceiveData));
-                receiveThread.Start();
+                Connection.Connect(_ip, _port);
+                _readBuffer = new byte[1024];
+                Connection.GetStream().BeginRead(_readBuffer, 0, 1024, ReceiveDataCallback, null);
 
-                successfulConnection?.Invoke();
+                SuccessfulClient?.Invoke();
 
             }
             catch (Exception e)
             {
-                failedConnection?.Invoke();
+                FailedClient?.Invoke();
             }
             
         }
 
-        private void ReceiveData()
+        private void ReceiveDataCallback(IAsyncResult result)
         {
-            NetworkStream stream = Connection.GetStream();
-                while (true)
+            try
+            {
+                int bytesRead = Connection.GetStream().EndRead(result);
+                if (bytesRead < 1)
                 {
-                    if (serverClosed) return;
-                    if (stream.DataAvailable)
-                    {
-                        try
-                        {
-                            byte[] bytes = new byte[Connection.Available];
-                            int bytesRead = stream.Read(bytes, 0, bytes.Length);
-                            try
-                            {
-                                Packet.handleDataFromServer(bytes);
-                            }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine($"ERROR handling data: {e}");
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            if (!serverClosed)
-                            {
-                                Console.WriteLine($"Error receiving data: {e}");
-                            }
-                        }
-                        
-                        
-                    }
+                    Console.WriteLine("Server seems to have closed connection, Disconnecting");
+                    Connection.Close();
+                    return;
                 }
+                byte[] data = new byte[bytesRead];
+                Array.Copy(_readBuffer, data, bytesRead);
+                Packet packet = new Packet(data);
+                _packetHandlers[packet.ReadInt()]?.Invoke(packet);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error Getting Data: " + e);
+            }
 
+            Connection.GetStream().BeginRead(_readBuffer, 0, 1024, ReceiveDataCallback, null);
+            
         }
-        
+
         private void SendData(IAsyncResult ar)
         {
             NetworkStream stream = (NetworkStream) ar.AsyncState;
             stream.EndWrite(ar);
-            safeToClose = true;
+            _safeToClose = true;
         }
         
-        public void SendPacketToServer(byte[] data)
+        public void SendPacketToServer(Packet packet)
         {
-            safeToClose = false;
-            Connection.GetStream().BeginWrite(data, 0, data.Length, new AsyncCallback(SendData),
+            _safeToClose = false;
+            Connection.GetStream().BeginWrite(packet.GetBytes(), 0, packet.GetBytes().Length, SendData,
                 Connection.GetStream());
         }
 
         public void Disconnect()
         {
-            while (!safeToClose) ;
-            serverClosed = true;
+            while (!_safeToClose);
             Connection.Close();
         }
     }
