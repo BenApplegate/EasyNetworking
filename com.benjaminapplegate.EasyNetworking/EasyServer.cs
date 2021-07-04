@@ -52,6 +52,7 @@ namespace com.benjaminapplegate.EasyNetworking
         {
             try
             {
+                if(_hasStopped) return;
                 TcpClient client = _tcpListener.EndAcceptTcpClient(ar);
 
                 Console.WriteLine($"Incoming connection from {client.Client.RemoteEndPoint}");
