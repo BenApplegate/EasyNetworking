@@ -13,6 +13,7 @@ namespace com.benjaminapplegate.EasyNetworking
         private TcpListener _tcpListener;
         private int _maxClients;
         private int _port;
+        private bool _hasStopped = false;
 
         public delegate void ServerCallback(TcpClient client, int id);
 
@@ -89,6 +90,7 @@ namespace com.benjaminapplegate.EasyNetworking
         {
             try
             {
+                if(_hasStopped) return;
                 if (ConnectedClients[(int) result.AsyncState] == null) return;
                 int bytesRead = ConnectedClients[(int)result.AsyncState].GetStream().EndRead(result);
                 if (bytesRead < 1)
@@ -159,6 +161,7 @@ namespace com.benjaminapplegate.EasyNetworking
 
         public void Stop()
         {
+            _hasStopped = true;
             _tcpListener.Stop();
         }
     }

@@ -12,6 +12,7 @@ namespace com.benjaminapplegate.EasyNetworking
 
         private string _ip;
         private int _port;
+        private bool _hasClosed = false;
 
         private bool _safeToClose = true;
 
@@ -82,13 +83,13 @@ namespace com.benjaminapplegate.EasyNetworking
                 Array.Copy(_readBuffer, data, bytesRead);
                 Packet packet = new Packet(data);
                 _packetHandlers[packet.ReadInt()]?.Invoke(packet);
+                if(_hasClosed) return;
                 Connection.GetStream().BeginRead(_readBuffer, 0, 1024, ReceiveDataCallback, null);
             }
             catch (Exception e)
             {
                 Console.WriteLine("There was an error getting data from the server, the server probably closed");
                 Connection.Close();
-                return;
             }
 
         }
@@ -110,6 +111,7 @@ namespace com.benjaminapplegate.EasyNetworking
         public void Disconnect()
         {
             while (!_safeToClose);
+            _hasClosed = true;
             Connection.Close();
         }
     }
