@@ -89,6 +89,7 @@ namespace com.benjaminapplegate.EasyNetworking
         {
             try
             {
+                if (ConnectedClients[(int) result.AsyncState] == null) return;
                 int bytesRead = ConnectedClients[(int)result.AsyncState].GetStream().EndRead(result);
                 if (bytesRead < 1)
                 {
@@ -101,14 +102,13 @@ namespace com.benjaminapplegate.EasyNetworking
                 Array.Copy(_receiveBuffers[(int)result.AsyncState], data, bytesRead);
                 Packet packet = new Packet(data);
                 _packetHandlers[packet.ReadInt()]?.Invoke((int) result.AsyncState, packet);
-                
+                if (ConnectedClients[(int) result.AsyncState] == null) return;
+                ConnectedClients[(int) result.AsyncState].GetStream().BeginRead(_receiveBuffers[(int) result.AsyncState], 0, 1024, ReceiveDataCallback, result.AsyncState);
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error Getting Data: " + e);
             }
-
-            ConnectedClients[(int) result.AsyncState].GetStream().BeginRead(_receiveBuffers[(int) result.AsyncState], 0, 1024, ReceiveDataCallback, result.AsyncState);
         }
         
         private void SendData(IAsyncResult ar)

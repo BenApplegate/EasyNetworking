@@ -65,6 +65,12 @@ namespace com.benjaminapplegate.EasyNetworking
         {
             try
             {
+                if (!Connection.Connected)
+                {
+                    Console.WriteLine("Server seems to have closed connection, Disconnecting");
+                    Connection.Close();
+                    return;
+                }
                 int bytesRead = Connection.GetStream().EndRead(result);
                 if (bytesRead < 1)
                 {
@@ -76,14 +82,15 @@ namespace com.benjaminapplegate.EasyNetworking
                 Array.Copy(_readBuffer, data, bytesRead);
                 Packet packet = new Packet(data);
                 _packetHandlers[packet.ReadInt()]?.Invoke(packet);
+                Connection.GetStream().BeginRead(_readBuffer, 0, 1024, ReceiveDataCallback, null);
             }
             catch (Exception e)
             {
-                Console.WriteLine("Error Getting Data: " + e);
+                Console.WriteLine("There was an error getting data from the server, the server probably closed");
+                Connection.Close();
+                return;
             }
 
-            Connection.GetStream().BeginRead(_readBuffer, 0, 1024, ReceiveDataCallback, null);
-            
         }
 
         private void SendData(IAsyncResult ar)
